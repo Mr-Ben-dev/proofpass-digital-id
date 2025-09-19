@@ -18,14 +18,14 @@ const Header = () => {
   const isActive = (href: string) => location.pathname === href;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 glass-card backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-white/[0.08] glass-card backdrop-blur-xl">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 hover-glow">
             <div className="relative">
-              <Shield className="h-8 w-8 text-emerald-500 animate-pulse-glow" />
-              <div className="absolute inset-0 h-8 w-8 text-emerald-500/20 animate-ping" />
+              <Shield className="h-8 w-8 text-emerald-400 animate-pulse-glow" />
+              <div className="absolute inset-0 h-8 w-8 text-emerald-400/20 animate-ping" />
             </div>
             <span className="text-2xl font-bold gradient-text">ProofPass</span>
           </Link>
@@ -57,7 +57,7 @@ const Header = () => {
             </div>
 
             {/* Mock Wallet Connection */}
-            <Button variant="outline" className="glass-button press-scale hover-glow">
+            <Button variant="outline" className="glass-button press-scale hover-glow border-white/[0.1] text-foreground hover:text-emerald-400">
               <Wallet className="h-4 w-4 mr-2" />
               Connect Wallet
             </Button>
@@ -89,8 +89,8 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            <div className="pt-4 border-t border-white/10">
-              <Button variant="outline" className="w-full glass-button">
+            <div className="pt-4 border-t border-white/[0.08]">
+              <Button variant="outline" className="w-full glass-button border-white/[0.1] text-foreground hover:text-emerald-400">
                 <Wallet className="h-4 w-4 mr-2" />
                 Connect Wallet
               </Button>

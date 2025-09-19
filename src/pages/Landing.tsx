@@ -107,10 +107,10 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen premium-bg">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-emerald-500/5 to-cyan-500/5 particle-bg">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-cyan-500/10 animate-gradient" />
+      <section className="relative overflow-hidden neural-network">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-emerald-500/10 animate-gradient" />
         
         <div className="relative container mx-auto px-4 py-20 md:py-32">
           <div className="text-center max-w-4xl mx-auto">
