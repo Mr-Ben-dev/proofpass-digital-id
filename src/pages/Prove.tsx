@@ -1,6 +1,7 @@
 import ResidencyPassABI from "@/abi/ResidencyPass.json";
 import ProgressStepper from "@/components/animations/ProgressStepper";
 import SuccessAnimation from "@/components/animations/SuccessAnimation";
+import { DiagnosticPanel } from "@/components/DiagnosticPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,8 +29,37 @@ import {
   Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { decodeEventLog, formatEther } from "viem";
+import { decodeEventLog, formatEther, keccak256, toHex } from "viem";
 import { useAccount } from "wagmi";
+
+// Validate ABI import at module level
+const validateABI = () => {
+  if (!ResidencyPassABI) {
+    console.error("[ProofPass] ABI import failed - ResidencyPassABI is null/undefined");
+    return false;
+  }
+  
+  if (!Array.isArray(ResidencyPassABI)) {
+    console.error("[ProofPass] ABI import failed - ResidencyPassABI is not an array");
+    return false;
+  }
+  
+  const passIssuedEvent = ResidencyPassABI.find((item: any) => 
+    item.type === 'event' && item.name === 'PassIssued'
+  );
+  
+  if (!passIssuedEvent) {
+    console.error("[ProofPass] ABI validation failed - PassIssued event not found");
+    return false;
+  }
+  
+  console.log("[ProofPass] ABI validation passed");
+  return true;
+};
+
+// Calculate PassIssued event signature for manual parsing
+const PASS_ISSUED_SIGNATURE = keccak256(toHex("PassIssued(uint256,address,address,string,string,string)"));
+console.log("[ProofPass] PassIssued event signature:", PASS_ISSUED_SIGNATURE);
 
 // Transaction state interface for better state management
 interface TransactionState {
@@ -198,13 +228,71 @@ const Prove = () => {
   // Handle transaction success and extract Pass ID
   useEffect(() => {
     if (isSuccess && issueData) {
+      console.log("=== PASS ID EXTRACTION DEBUG START ===");
+      console.log("Environment:", {
+        isDev: import.meta.env.DEV,
+        mode: import.meta.env.MODE,
+        baseUrl: import.meta.env.BASE_URL,
+        nodeEnv: import.meta.env.NODE_ENV,
+        prod: import.meta.env.PROD,
+        viemVersion: "CHECK_PACKAGE_JSON"
+      });
+      
+      console.log("Environment Variables Check:");
+      console.log("- VITE_WALLET_CONNECT_PROJECT_ID:", import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID ? "SET" : "NOT_SET");
+      console.log("- VITE_RPC_URL:", import.meta.env.VITE_RPC_URL ? "SET" : "NOT_SET");
+      console.log("- VITE_CONTRACT_ADDRESS:", import.meta.env.VITE_CONTRACT_ADDRESS ? "SET" : "NOT_SET");
+      console.log("- All env vars:", import.meta.env);
+      
+      console.log("Network & RPC Configuration:");
+      console.log("- Configured RPC: https://calibration.filfox.info/rpc/v1");
+      console.log("- Transaction hash:", transactionHash);
+      console.log("- Chain ID: 314159 (Filecoin Calibration)");
+      console.log("- Account connected:", !!address);
+      console.log("- Account address:", address);
+      
       console.log("[ProofPass] Transaction confirmed, parsing receipt:", issueData);
+      console.log("[ProofPass] Receipt structure analysis:");
+      console.log("- Transaction hash:", issueData.transactionHash);
+      console.log("- Block number:", issueData.blockNumber);
+      console.log("- Block hash:", issueData.blockHash);
+      console.log("- Gas used:", issueData.gasUsed?.toString());
+      console.log("- Effective gas price:", issueData.effectiveGasPrice?.toString());
+      console.log("- Status:", issueData.status);
+      console.log("- Logs count:", issueData.logs?.length || 0);
+      console.log("- Contract address:", issueData.contractAddress);
+      console.log("- From:", issueData.from);
+      console.log("- To:", issueData.to);
+      console.log("- Raw logs:", issueData.logs);
+      
+      // Validate ABI import
+      console.log("[ProofPass] ABI validation:");
+      console.log("- ABI imported:", !!ResidencyPassABI);
+      console.log("- ABI type:", typeof ResidencyPassABI);
+      console.log("- ABI length:", Array.isArray(ResidencyPassABI) ? ResidencyPassABI.length : "NOT_ARRAY");
+      
+      const abiValid = validateABI();
+      console.log("- ABI validation result:", abiValid);
+      
+      // Find PassIssued event in ABI
+      const passIssuedEvent = Array.isArray(ResidencyPassABI) 
+        ? ResidencyPassABI.find((item: any) => item.type === 'event' && item.name === 'PassIssued')
+        : null;
+      console.log("- PassIssued event found in ABI:", !!passIssuedEvent);
+      console.log("- PassIssued event structure:", passIssuedEvent);
       
       try {
         // Look for PassIssued event in the logs
         let extractedPassId: string | null = null;
         
-        for (const log of issueData.logs) {
+        for (const [index, log] of issueData.logs.entries()) {
+          console.log(`[ProofPass] Processing log ${index + 1}/${issueData.logs.length}:`, {
+            address: log.address,
+            topics: log.topics,
+            data: log.data,
+            topicsLength: log.topics?.length || 0
+          });
+          
           try {
             // Use viem's decodeEventLog to properly parse the PassIssued event
             const decodedLog = decodeEventLog({
@@ -213,23 +301,64 @@ const Prove = () => {
               topics: log.topics,
             });
             
-            console.log("[ProofPass] Decoded log:", decodedLog);
+            console.log(`[ProofPass] Successfully decoded log ${index + 1}:`, decodedLog);
+            console.log("- Event name:", decodedLog.eventName);
+            console.log("- Event args:", decodedLog.args);
             
             // Check if this is the PassIssued event
             if (decodedLog.eventName === 'PassIssued') {
-              // Extract passId from the decoded event args
-              const passIdValue = decodedLog.args.passId;
+              // Extract passId from the decoded event args with proper typing
+              const args = decodedLog.args as any;
+              const passIdValue = args.passId || args[0]; // Try named property first, then indexed
               extractedPassId = passIdValue.toString();
-              console.log("[ProofPass] Extracted Pass ID from PassIssued event:", extractedPassId);
+              console.log(`[ProofPass] ✅ FOUND PassIssued event in log ${index + 1}!`);
+              console.log("- Raw passId value:", passIdValue);
+              console.log("- PassId type:", typeof passIdValue);
+              console.log("- Extracted Pass ID:", extractedPassId);
               break;
+            } else {
+              console.log(`[ProofPass] Log ${index + 1} is ${decodedLog.eventName}, not PassIssued`);
             }
           } catch (decodeError) {
-            console.log("[ProofPass] Could not decode log as PassIssued event:", decodeError);
+            console.log(`[ProofPass] Could not decode log ${index + 1} as PassIssued event:`, decodeError);
+            
+            // Try manual parsing as fallback
+            if (log.topics && log.topics.length >= 4) {
+              console.log(`[ProofPass] Attempting manual parsing of log ${index + 1}:`);
+              console.log("- Topics[0] (event signature):", log.topics[0]);
+              console.log("- Expected PassIssued signature:", PASS_ISSUED_SIGNATURE);
+              console.log("- Signature match:", log.topics[0] === PASS_ISSUED_SIGNATURE);
+              console.log("- Topics[1] (passId):", log.topics[1]);
+              console.log("- Topics[2] (to):", log.topics[2]);
+              console.log("- Topics[3] (issuer):", log.topics[3]);
+              
+              // Verify this is actually a PassIssued event by checking signature
+              if (log.topics[0] === PASS_ISSUED_SIGNATURE) {
+                try {
+                  const passIdHex = log.topics[1];
+                  const manualPassId = BigInt(passIdHex).toString();
+                  console.log(`[ProofPass] Manual extraction from verified PassIssued event: ${manualPassId}`);
+                  
+                  if (!extractedPassId && manualPassId !== "0") {
+                    extractedPassId = manualPassId;
+                    console.log(`[ProofPass] ✅ Using manual extraction: ${extractedPassId}`);
+                  }
+                } catch (manualError) {
+                  console.log(`[ProofPass] Manual parsing failed for log ${index + 1}:`, manualError);
+                }
+              } else {
+                console.log(`[ProofPass] Log ${index + 1} event signature doesn't match PassIssued`);
+              }
+            }
             continue;
           }
         }
 
-        if (extractedPassId) {
+        console.log("[ProofPass] Final extraction result:", extractedPassId);
+        console.log("=== PASS ID EXTRACTION DEBUG END ===");
+
+        if (extractedPassId && extractedPassId !== "0") {
+          console.log(`[ProofPass] ✅ SUCCESS: Using Pass ID ${extractedPassId}`);
           setTransactionState(prev => ({
             ...prev,
             passId: extractedPassId,
@@ -245,13 +374,27 @@ const Prove = () => {
             description: `Your Residency Pass #${extractedPassId} has been minted`,
           });
         } else {
-          console.error("[ProofPass] Could not extract Pass ID from transaction logs");
+          console.error("[ProofPass] ❌ FAILURE: Could not extract valid Pass ID from transaction logs");
+          console.error("Final extractedPassId value:", extractedPassId);
+          console.error("Logs were:", issueData.logs);
+          
+          // Set a fallback Pass ID to prevent total failure
+          const fallbackPassId = "UNKNOWN";
+          console.warn(`[ProofPass] Using fallback Pass ID: ${fallbackPassId}`);
+          
           setTransactionState(prev => ({
             ...prev,
+            passId: fallbackPassId,
             isConfirming: false,
             isError: true,
-            error: "Pass ID could not be extracted from transaction",
+            error: `Pass ID extraction failed. Extracted: "${extractedPassId}". Check console for details.`,
           }));
+          
+          toast({
+            title: "Transaction Completed with Issues",
+            description: "Pass was minted but ID extraction failed. Check console for details.",
+            variant: "destructive"
+          });
         }
       } catch (error) {
         console.error("[ProofPass] Error parsing transaction receipt:", error);
@@ -584,6 +727,11 @@ const Prove = () => {
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Diagnostic Panel - Only show in development or when needed */}
+      {(import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) && (
+        <DiagnosticPanel />
+      )}
     </motion.div>
   );
 };
