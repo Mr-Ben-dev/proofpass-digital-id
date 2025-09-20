@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Shield, Github, ExternalLink, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { contracts } from "@/utils/constants";
 
 const Footer = () => {
   const { toast } = useToast();
@@ -9,15 +10,15 @@ const Footer = () => {
   const contractAddresses = [
     {
       name: "NotaryRegistry",
-      address: "0x17692e10Aa8FD4F1DC28cDaa49827111C4Ab6051",
+      address: contracts.NotaryRegistry,
     },
     {
       name: "SPJurisdiction", 
-      address: "0xBC8F28D0850Ea65A824c4677E4897a74e2246fC0",
+      address: contracts.SPJurisdiction,
     },
     {
       name: "ResidencyPass",
-      address: "0x2D4Ea76Ea27e5fC4E551d8657B79AD30FB48C57E",
+      address: contracts.ResidencyPass,
     },
   ];
 

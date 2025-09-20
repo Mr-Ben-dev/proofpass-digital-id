@@ -1,8 +1,13 @@
-import type { Config } from "tailwindcss";
+import colors from "tailwindcss/colors";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -14,9 +19,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        inter: ['Inter', 'sans-serif'],
+        inter: ["Inter", "sans-serif"],
       },
       colors: {
+        ...colors,
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -36,14 +42,6 @@ export default {
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
         card: {
@@ -51,11 +49,12 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         // ProofPass Brand Colors
-        emerald: {
+        brandEmerald: {
           DEFAULT: "hsl(var(--emerald))",
+          // custom brand colors only, do not override default emerald/cyan
           foreground: "hsl(var(--emerald-foreground))",
         },
-        cyan: {
+        brandCyan: {
           DEFAULT: "hsl(var(--cyan))",
           foreground: "hsl(var(--cyan-foreground))",
         },
@@ -71,7 +70,10 @@ export default {
           to: { height: "var(--radix-accordion-content-height)", opacity: "1" },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)", opacity: "1" },
+          from: {
+            height: "var(--radix-accordion-content-height)",
+            opacity: "1",
+          },
           to: { height: "0", opacity: "0" },
         },
         "fade-in": {
@@ -90,22 +92,22 @@ export default {
           "0%, 100%": { boxShadow: "0 0 20px hsl(var(--emerald) / 0.2)" },
           "50%": { boxShadow: "0 0 30px hsl(var(--emerald) / 0.4)" },
         },
-        "float": {
+        float: {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-20px)" },
         },
-        "gradient": {
+        gradient: {
           "0%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
           "100%": { backgroundPosition: "0% 50%" },
         },
-        "shimmer": {
+        shimmer: {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
-        "typing": {
-          "from": { width: "0" },
-          "to": { width: "100%" },
+        typing: {
+          from: { width: "0" },
+          to: { width: "100%" },
         },
         "blink-caret": {
           "from, to": { borderColor: "transparent" },
@@ -129,22 +131,23 @@ export default {
         "scale-in": "scale-in 0.2s ease-out",
         "slide-up": "slide-up 0.4s ease-out",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
-        "float": "float 6s ease-in-out infinite",
-        "gradient": "gradient 15s ease infinite",
-        "shimmer": "shimmer 2s infinite",
-        "typing": "typing 3.5s steps(40, end)",
+        float: "float 6s ease-in-out infinite",
+        gradient: "gradient 15s ease infinite",
+        shimmer: "shimmer 2s infinite",
+        typing: "typing 3.5s steps(40, end)",
         "blink-caret": "blink-caret 0.75s step-end infinite",
         "bounce-in": "bounce-in 0.6s ease-out",
         "slide-in-right": "slide-in-right 0.3s ease-out",
       },
       backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "gradient-conic":
+          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       backdropBlur: {
-        xs: '2px',
+        xs: "2px",
       },
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+};

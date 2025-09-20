@@ -1,66 +1,96 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Shield, 
-  CheckCircle, 
-  Search, 
-  ExternalLink, 
+import { motion, AnimatePresence } from "framer-motion";
+import { fadeIn, staggerContainer, staggerItem } from "@/utils/motionPresets";
+import {
+  useVerifyResidency,
+  useGetPDPFreshness,
+  useTriggerPDPCheck,
+  usePdpFee,
+} from "@/hooks/useResidencyPass";
+import { useToast } from "@/hooks/use-toast";
+import LoadingSkeleton from "@/components/animations/LoadingSkeleton";
+import {
+  Shield,
+  CheckCircle,
+  Search,
+  ExternalLink,
   Copy,
   RefreshCw,
   AlertCircle,
   Clock,
-  FileCheck,
-  QrCode,
-  Share2
+  FileText,
+  Share2,
+  WifiOff,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const Verify = () => {
-  const [passId, setPassId] = useState("1");
-  const [isLoading, setIsLoading] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [passId, setPassId] = useState(searchParams.get("passId") || "");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  const passCardRef = useRef<HTMLDivElement>(null);
+
+  const passIdBigInt = passId ? BigInt(passId) : null;
+
+  const {
+    data: verificationResult,
+    isLoading,
+    isError,
+    error,
+    refetch: refetchVerification,
+  } = useVerifyResidency(isVerifying ? passIdBigInt : null);
+  const { data: pdpFreshness, refetch: refetchFreshness } = useGetPDPFreshness(
+    verificationResult?.[0] ? passIdBigInt : null
+  );
+  const { data: pdpFee } = usePdpFee();
+  const { writeContract: triggerPDP, isLoading: isTriggeringPDP } =
+    useTriggerPDPCheck();
+
   const { toast } = useToast();
 
-  // Mock verification data for Pass ID 1
-  const mockPassData = {
-    id: "1",
-    isValid: true,
-    jurisdiction: "US",
-    region: "CA",
-    pdpStatus: "Fresh",
-    lastChecked: "2 hours ago",
-    issuedDate: "Sept 19, 2024",
-    expiry: "No expiry set",
-    storageProvider: "0xe164...9be32",
-    docCID: "bafy2bzac...",
-    metaCID: "bafy2bzac...",
-    totalPDPChecks: 2,
-    owner: "0x742d35Cc6533C4532CE8B9DE1991Fbf8E936DD84"
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("passId")) {
+      setIsVerifying(true);
+    }
+  }, [searchParams]);
+
+  const handleVerify = () => {
+    setSearchParams({ passId });
+    setIsVerifying(true);
+    refetchVerification();
   };
 
-  const handleVerify = async () => {
-    setIsLoading(true);
-    setError(null);
-    setVerificationResult(null);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    if (passId === "1") {
-      setVerificationResult(mockPassData);
-      toast({
-        title: "Verification Complete",
-        description: "Pass validated successfully",
-      });
-    } else {
-      setError("Pass not found, expired, or revoked");
-    }
-
-    setIsLoading(false);
+  const handleTriggerPDP = () => {
+    let pdpFeeBigInt: bigint = BigInt(0);
+    if (typeof pdpFee === "bigint") pdpFeeBigInt = pdpFee;
+    else if (typeof pdpFee === "string" || typeof pdpFee === "number")
+      pdpFeeBigInt = BigInt(pdpFee);
+    triggerPDP(passIdBigInt, pdpFeeBigInt);
+    toast({
+      title: "PDP Check Initiated",
+      description: "This will take a few moments.",
+    });
+    setTimeout(() => refetchFreshness(), 30000); // Refetch after 30s
   };
 
   const copyToClipboard = (text: string, description: string) => {
@@ -71,28 +101,70 @@ const Verify = () => {
     });
   };
 
-  const refreshPDPStatus = () => {
-    toast({
-      title: "PDP Check Initiated",
-      description: "Freshness verification in progress (costs 0.1 tFIL)",
-    });
+  const exportToPdf = () => {
+    if (passCardRef.current) {
+      html2canvas(passCardRef.current).then((canvas) => {
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF();
+        pdf.addImage(
+          imgData,
+          "PNG",
+          0,
+          0,
+          pdf.internal.pageSize.getWidth(),
+          0,
+          undefined,
+          "FAST"
+        );
+        pdf.save(`ProofPass-${passId}.pdf`);
+      });
+    }
   };
 
+  const sharePass = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: `ProofPass Verification for Pass ID #${passId}`,
+          text: `Check out the verification for ProofPass ID #${passId}`,
+          url: window.location.href,
+        })
+        .then(() => console.log("Successful share"))
+        .catch((error) => console.log("Error sharing", error));
+    } else {
+      copyToClipboard(window.location.href, "Verification link");
+    }
+  };
+
+  const isValid = verificationResult?.[0];
+  const passData = verificationResult?.[1];
+
   return (
-    <div className="min-h-screen py-12 bg-gradient-to-br from-primary/5 via-emerald-500/5 to-cyan-500/5">
+    <motion.div
+      className="min-h-screen py-12 bg-gradient-to-br from-primary/5 via-emerald-500/5 to-cyan-500/5"
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={fadeIn}
+    >
       <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header */}
+        {!isOnline && (
+          <div className="flex items-center justify-center space-x-2 text-red-500 bg-red-500/10 p-4 rounded-lg mb-8">
+            <WifiOff />
+            <p>You are offline. Some features may not be available.</p>
+          </div>
+        )}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="gradient-text">Verify Residency Pass</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Enter a Pass ID to instantly verify jurisdiction compliance and data freshness
+            Enter a Pass ID to instantly verify jurisdiction compliance and data
+            freshness
           </p>
         </div>
 
-        {/* Demo Section */}
-        <Card className="glass-card mb-8 animate-fade-in">
+        <Card className="glass-card mb-8">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Search className="h-6 w-6 text-emerald-500" />
@@ -100,16 +172,6 @@ const Verify = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Shield className="h-5 w-5 text-emerald-600" />
-                <span className="font-medium text-emerald-800">Try the Demo</span>
-              </div>
-              <p className="text-emerald-700 text-sm">
-                Use Pass ID "1" to see a live verification example with real on-chain data
-              </p>
-            </div>
-
             <div className="flex space-x-4">
               <div className="flex-1">
                 <Input
@@ -140,249 +202,95 @@ const Verify = () => {
           </CardContent>
         </Card>
 
-        {/* Error State */}
-        {error && (
-          <Card className="glass-card mb-8 animate-scale-in border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3 text-red-600">
-                <AlertCircle className="h-6 w-6" />
-                <div>
-                  <div className="font-semibold">Verification Failed</div>
-                  <div className="text-sm">{error}</div>
-                </div>
-              </div>
-              <div className="mt-4 text-sm text-red-600/80">
-                Please verify the Pass ID is correct or contact the issuer for assistance.
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <AnimatePresence>
+          {isLoading && <LoadingSkeleton className="h-96" />}
 
-        {/* Success State */}
-        {verificationResult && verificationResult.isValid && (
-          <Card className="glass-card animate-scale-in border-emerald-200">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  <CheckCircle className="h-6 w-6 text-emerald-500 animate-pulse" />
-                  <span className="text-emerald-600">Pass Verified Successfully</span>
-                </CardTitle>
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                    🇺🇸 US → CA
-                  </Badge>
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Fresh ✅
-                  </Badge>
-                </div>
-              </div>
-              <p className="text-muted-foreground">
-                Last PDP check: {verificationResult.lastChecked} - Data freshness confirmed
-              </p>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              {/* Key Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Pass ID</div>
-                  <div className="text-2xl font-bold text-emerald-600">#{verificationResult.id}</div>
-                </div>
-                
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Issued</div>
-                  <div className="font-semibold text-foreground">{verificationResult.issuedDate}</div>
-                </div>
-                
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Total PDP Checks</div>
-                  <div className="font-semibold text-foreground">{verificationResult.totalPDPChecks}</div>
-                </div>
-              </div>
-
-              {/* Detailed Information */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-muted-foreground">Expiry:</span>
-                    <span className="font-medium">{verificationResult.expiry}</span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-muted-foreground">Storage Provider:</span>
-                    <div className="flex items-center space-x-2">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{verificationResult.storageProvider}</code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => copyToClipboard("0xe164d9d7e8d7c4532ce8b9de1991fbf8e936dd84", "Storage Provider address")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
+          {isError && (
+            <motion.div variants={fadeIn}>
+              <Card className="glass-card mb-8 border-red-200">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3 text-red-600">
+                    <AlertCircle className="h-6 w-6" />
+                    <div>
+                      <div className="font-semibold">Verification Failed</div>
+                      <div className="text-sm">{error?.message}</div>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-muted-foreground">Document CID:</span>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {isValid && passData && (
+            <motion.div
+              ref={passCardRef}
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+            >
+              <Card className="glass-card animate-scale-in border-emerald-200">
+                <CardHeader className="pb-4">
+                  <motion.div
+                    variants={staggerItem}
+                    className="flex items-center justify-between"
+                  >
+                    <CardTitle className="flex items-center space-x-2">
+                      <CheckCircle className="h-6 w-6 text-emerald-500" />
+                      <span className="text-emerald-600">
+                        Pass Verified Successfully
+                      </span>
+                    </CardTitle>
                     <div className="flex items-center space-x-2">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{verificationResult.docCID}...</code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => copyToClipboard("bafy2bzacebkpnx7yjq7q7q7q7q7q7q7q7q7q7q7q7q", "Document CID")}
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                        {passData.country} &rarr; {passData.region}
+                      </Badge>
+                      <Badge
+                        className={
+                          pdpFreshness?.[0]
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : "bg-yellow-100 text-yellow-800 border-yellow-200"
+                        }
                       >
-                        <Copy className="h-3 w-3" />
-                      </Button>
+                        <Clock className="h-3 w-3 mr-1" />
+                        {pdpFreshness?.[0] ? "Fresh" : "Stale"}
+                      </Badge>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-muted-foreground">Metadata CID:</span>
-                    <div className="flex items-center space-x-2">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{verificationResult.metaCID}...</code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => copyToClipboard("bafy2bzacebkpnx7yjq8q8q8q8q8q8q8q8q8q8q8q8q", "Metadata CID")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-muted-foreground">Owner:</span>
-                    <div className="flex items-center space-x-2">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                        {verificationResult.owner.slice(0, 6)}...{verificationResult.owner.slice(-4)}
-                      </code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => copyToClipboard(verificationResult.owner, "Owner address")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  </motion.div>
+                  <motion.p
+                    variants={staggerItem}
+                    className="text-muted-foreground"
+                  >
+                    {pdpFreshness?.[1]
+                      ? `Last PDP check: ${formatDistanceToNow(
+                          new Date(Number(pdpFreshness[1]) * 1000)
+                        )} ago`
+                      : ""}
+                  </motion.p>
+                </CardHeader>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button
-                  variant="outline"
-                  className="glass-button w-full"
-                  onClick={() => window.open(`https://calibration.filfox.info/en/message/${verificationResult.id}`, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View on Explorer
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="glass-button w-full"
-                  onClick={() => copyToClipboard(`https://proofpass.app/verify?id=${verificationResult.id}`, "Pass verification link")}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Pass Link
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="glass-button w-full hover-glow-cyan"
-                  onClick={refreshPDPStatus}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh PDP
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="glass-button w-full"
-                >
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Generate QR
-                </Button>
-              </div>
-
-              {/* Technical Details Expandable */}
-              <details className="group">
-                <summary className="cursor-pointer p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Technical Details</span>
-                    <FileCheck className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+                <CardContent className="space-y-6">
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={handleTriggerPDP}
+                      disabled={isTriggeringPDP}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      {isTriggeringPDP ? "Refreshing..." : "Refresh PDP Status"}
+                    </Button>
+                    <Button onClick={exportToPdf}>
+                      <FileText className="mr-2 h-4 w-4" /> Export as PDF
+                    </Button>
+                    <Button onClick={sharePass}>
+                      <Share2 className="mr-2 h-4 w-4" /> Share
+                    </Button>
                   </div>
-                </summary>
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <pre className="text-xs text-muted-foreground font-mono overflow-x-auto">
-{JSON.stringify({
-  passId: verificationResult.id,
-  jurisdiction: {
-    country: verificationResult.jurisdiction,
-    region: verificationResult.region
-  },
-  pdp: {
-    status: verificationResult.pdpStatus,
-    lastCheck: verificationResult.lastChecked,
-    totalChecks: verificationResult.totalPDPChecks
-  },
-  blockchain: {
-    network: "Filecoin Calibration",
-    chainId: 314159,
-    contract: "0x2D4Ea76Ea27e5fC4E551d8657B79AD30FB48C57E"
-  }
-}, null, 2)}
-                  </pre>
-                </div>
-              </details>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Verification</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Verify any ProofPass residency NFT instantly using its unique Pass ID. 
-                All verifications are cryptographically secured and tamper-proof.
-              </p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div>• Instant blockchain verification</div>
-                <div>• Real-time PDP freshness checks</div>
-                <div>• Cryptographic proof validation</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Understanding Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Pass verification confirms jurisdiction compliance, data freshness, 
-                and notary attestation integrity.
-              </p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div>• 🟢 Fresh: Data verified within 24h</div>
-                <div>• 🟡 Stale: Requires PDP refresh</div>
-                <div>• 🔴 Invalid: Pass revoked or expired</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

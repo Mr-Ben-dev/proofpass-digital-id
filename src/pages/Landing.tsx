@@ -1,31 +1,28 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import AnimatedCounter from "@/components/ui/animated-counter";
-import { 
-  Shield, 
-  CheckCircle, 
-  Zap, 
-  Lock, 
-  FileCheck, 
+import AnimatedCounter from "@/components/animations/AnimatedCounter";
+import Typewriter from "@/components/animations/Typewriter";
+import { motion } from "framer-motion";
+import { staggerContainer, staggerItem, fadeIn, scaleButton } from "@/utils/motionPresets";
+import { useGetNotaryCount } from "@/hooks/useNotaryRegistry";
+import {
+  Shield,
+  CheckCircle,
+  Zap,
+  Lock,
+  FileCheck,
   Globe,
   ArrowRight,
   Sparkles,
   Database,
   Key,
-  Clock,
   Award,
-  Users,
   TrendingUp
 } from "lucide-react";
 
 const Landing = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
+  const { data: notaryCount } = useGetNotaryCount();
 
   const features = [
     {
@@ -36,7 +33,7 @@ const Landing = () => {
     },
     {
       icon: Database,
-      title: "PDP Monitoring", 
+      title: "PDP Monitoring",
       description: "Real-time data freshness verification with 24h guarantees",
       gradient: "from-cyan-400 to-blue-400"
     },
@@ -107,79 +104,90 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen premium-bg">
+    <motion.div
+      className="min-h-screen premium-bg"
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={fadeIn}
+    >
       {/* Hero Section */}
       <section className="relative overflow-hidden neural-network">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-emerald-500/10 animate-gradient" />
         
-        <div className="relative container mx-auto px-4 py-20 md:py-32">
+        <motion.div
+          className="relative container mx-auto px-4 py-20 md:py-32"
+          variants={staggerContainer}
+        >
           <div className="text-center max-w-4xl mx-auto">
             {/* Animated Badge */}
-            <div className={`inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-8 transition-all duration-1000 ${isVisible ? 'animate-bounce-in' : 'opacity-0'}`}>
+            <motion.div variants={staggerItem} className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-8">
               <Sparkles className="h-4 w-4 text-emerald-400" />
               <span className="text-sm font-medium text-emerald-400">Try Pass ID: 1</span>
               <ArrowRight className="h-4 w-4 text-emerald-400" />
-            </div>
+            </motion.div>
 
             {/* Hero Headline */}
-            <h1 className={`text-5xl md:text-7xl font-bold mb-6 transition-all duration-1000 delay-200 ${isVisible ? 'animate-slide-up' : 'opacity-0 translate-y-10'}`}>
-              <span className="gradient-text">Verifiable Data</span>
-              <br />
-              <span className="text-foreground">Residency, Instantly</span>
-            </h1>
+            <motion.div variants={staggerItem} className="text-5xl md:text-7xl font-bold mb-6 h-24 md:h-48 flex items-center justify-center">
+                <Typewriter text="Verifiable Data Residency, Instantly" className="gradient-text" />
+            </motion.div>
 
             {/* Subtitle */}
-            <p className={`text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 delay-400 ${isVisible ? 'animate-slide-up' : 'opacity-0 translate-y-10'}`}>
+            <motion.p variants={staggerItem} className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
               Cryptographically prove jurisdiction compliance on{" "}
-              <span className="text-emerald-400 font-semibold">Filecoin</span> with 
+              <span className="text-emerald-400 font-semibold">Filecoin</span> with
               soulbound NFTs and zero-knowledge proofs
-            </p>
+            </motion.p>
 
             {/* CTA Buttons */}
-            <div className={`flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-16 transition-all duration-1000 delay-600 ${isVisible ? 'animate-scale-in' : 'opacity-0 scale-95'}`}>
-              <Link to="/verify">
-                <Button size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-8 py-4 text-lg press-scale hover-glow">
-                  <Shield className="mr-2 h-5 w-5" />
-                  Verify Pass ID 1
-                </Button>
+            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-16">
+              <Link to="/verify?passId=1">
+                <motion.div variants={scaleButton} whileHover="hover" whileTap="tap">
+                  <Button size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-8 py-4 text-lg">
+                    <Shield className="mr-2 h-5 w-5" />
+                    Verify Pass ID 1
+                  </Button>
+                </motion.div>
               </Link>
               <Link to="/prove">
-                <Button size="lg" variant="outline" className="glass-button font-semibold px-8 py-4 text-lg press-scale hover-glow-cyan">
-                  Issue New Pass
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                <motion.div variants={scaleButton} whileHover="hover" whileTap="tap">
+                  <Button size="lg" variant="outline" className="glass-button font-semibold px-8 py-4 text-lg">
+                    Issue New Pass
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </motion.div>
               </Link>
-            </div>
+            </motion.div>
 
             {/* Live Stats */}
-            <div className={`grid grid-cols-2 md:grid-cols-4 gap-8 transition-all duration-1000 delay-800 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
-              <div className="text-center">
+            <motion.div variants={staggerContainer} className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              <motion.div variants={staggerItem} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-emerald-400 mb-2">
-                  <AnimatedCounter end={5} suffix=" tFIL" />
+                  <AnimatedCounter value={5} postfix=" tFIL" />
                 </div>
                 <div className="text-sm text-muted-foreground">Pass Issuance Fee</div>
-              </div>
-              <div className="text-center">
+              </motion.div>
+              <motion.div variants={staggerItem} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-cyan-400 mb-2">
-                  <AnimatedCounter end={2} suffix=" Checks" />
+                  <AnimatedCounter value={notaryCount ? Number(notaryCount) : 0} />
                 </div>
-                <div className="text-sm text-muted-foreground">PDP Verifications</div>
-              </div>
-              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Registered Notaries</div>
+              </motion.div>
+              <motion.div variants={staggerItem} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-purple-400 mb-2">
-                  <AnimatedCounter end={24} suffix="h" />
+                  <AnimatedCounter value={24} postfix="h" />
                 </div>
                 <div className="text-sm text-muted-foreground">Freshness Guarantee</div>
-              </div>
-              <div className="text-center">
+              </motion.div>
+              <motion.div variants={staggerItem} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-pink-400 mb-2">
-                  <AnimatedCounter end={100} suffix="%" />
+                  <AnimatedCounter value={100} postfix="%" />
                 </div>
                 <div className="text-sm text-muted-foreground">Soulbound Security</div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Features Grid */}
@@ -195,30 +203,28 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card 
-                  key={feature.title} 
-                  className={`glass-card hover:scale-105 transition-all duration-300 group animate-slide-up`}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardContent className="p-6">
-                    <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${feature.gradient} mb-4 group-hover:animate-pulse`}>
-                      <Icon className="h-6 w-6 text-white" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2 text-foreground">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                <motion.div variants={staggerItem} key={feature.title}>
+                    <Card className="glass-card h-full">
+                      <CardContent className="p-6">
+                        <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${feature.gradient} mb-4`}>
+                          <Icon className="h-6 w-6 text-white" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2 text-foreground">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {feature.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -235,17 +241,13 @@ const Landing = () => {
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div variants={staggerContainer} className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {steps.map((step, index) => {
                 const Icon = step.icon;
                 return (
-                  <div 
-                    key={step.number}
-                    className={`text-center animate-fade-in`}
-                    style={{ animationDelay: `${index * 200}ms` }}
-                  >
+                  <motion.div variants={staggerItem} key={step.number} className="text-center">
                     <div className="relative mb-6">
-                      <div className="w-20 h-20 mx-auto bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center mb-4 animate-float">
+                      <div className="w-20 h-20 mx-auto bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center mb-4">
                         <Icon className="h-10 w-10 text-white" />
                       </div>
                       <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
@@ -261,10 +263,10 @@ const Landing = () => {
                     <p className="text-muted-foreground leading-relaxed">
                       {step.description}
                     </p>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -278,21 +280,17 @@ const Landing = () => {
             </h3>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <motion.div variants={staggerContainer} className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {trustLogos.map((logo, index) => (
-              <div 
-                key={logo.name}
-                className={`text-center group animate-fade-in`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
+              <motion.div variants={staggerItem} key={logo.name} className="text-center group">
                 <div className="p-6 rounded-xl bg-gradient-to-br from-primary/5 to-emerald-500/5 group-hover:from-primary/10 group-hover:to-emerald-500/10 transition-all duration-300 mb-3">
                   <Award className="h-8 w-8 text-emerald-400 mx-auto" />
                 </div>
                 <div className="font-semibold text-foreground mb-1">{logo.name}</div>
                 <div className="text-xs text-muted-foreground">{logo.description}</div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -304,26 +302,30 @@ const Landing = () => {
             Ready to Get Started?
           </h2>
           <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
-            Join the future of verifiable data residency. Try our demo with Pass ID 1 
+            Join the future of verifiable data residency. Try our demo with Pass ID 1
             or issue your own pass in minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <Link to="/verify">
-              <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-gray-100 font-semibold px-8 py-4 text-lg press-scale">
-                <Shield className="mr-2 h-5 w-5" />
-                Try Demo Now
-              </Button>
+            <Link to="/verify?passId=1">
+              <motion.div variants={scaleButton} whileHover="hover" whileTap="tap">
+                <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-gray-100 font-semibold px-8 py-4 text-lg">
+                  <Shield className="mr-2 h-5 w-5" />
+                  Try Demo Now
+                </Button>
+              </motion.div>
             </Link>
             <Link to="/docs">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 font-semibold px-8 py-4 text-lg press-scale">
-                View Documentation
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+              <motion.div variants={scaleButton} whileHover="hover" whileTap="tap">
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 font-semibold px-8 py-4 text-lg">
+                  View Documentation
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </motion.div>
             </Link>
           </div>
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 };
 
