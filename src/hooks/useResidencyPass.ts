@@ -1,11 +1,10 @@
+import { contracts, filecoinCalibration } from "@/utils/constants";
 import {
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useAccount,
+    useAccount,
+    useReadContract,
+    useWaitForTransactionReceipt,
+    useWriteContract,
 } from "wagmi";
-import { filecoinCalibration } from "@/utils/constants";
-import { contracts } from "@/utils/constants";
 import ResidencyPassAbi from "../abi/ResidencyPass.json";
 
 const residencyPassContract = {
@@ -47,6 +46,7 @@ export const useIssuePass = () => {
     isError: isReceiptError,
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
+  
   return {
     writeContract: (
       to: `0x${string}`,
@@ -65,6 +65,7 @@ export const useIssuePass = () => {
         chain: filecoinCalibration,
         account,
       }),
+    hash, // Export the transaction hash
     data: receipt,
     isLoading: isPending || isConfirming,
     isSuccess,

@@ -5,28 +5,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useFeeAmount, useIssuePass } from "@/hooks/useResidencyPass";
 import { fadeIn } from "@/utils/motionPresets";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    ArrowRight,
-    CheckCircle,
-    Copy,
-    CreditCard,
-    ExternalLink,
-    FileCheck,
-    Upload
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  FileCheck,
+  Loader2,
+  Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { formatEther, parseAbiItem } from "viem";
+import { formatEther } from "viem";
 import { useAccount } from "wagmi";
+
+// Transaction state interface for better state management
+interface TransactionState {
+  hash: string | null;
+  passId: string | null;
+  isConfirming: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+  error: string | null;
+}
 
 const Prove = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -34,7 +46,16 @@ const Prove = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [country, setCountry] = useState("");
   const [region, setRegion] = useState("");
-  const [passId, setPassId] = useState<string | null>(null);
+  
+  // Enhanced transaction state management
+  const [transactionState, setTransactionState] = useState<TransactionState>({
+    hash: null,
+    passId: null,
+    isConfirming: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+  });
 
   const { address } = useAccount();
   const { data: fee, isLoading: isFeeLoading } = useFeeAmount();
@@ -43,6 +64,8 @@ const Prove = () => {
     isLoading: isIssuing,
     isSuccess,
     data: issueData,
+    hash: transactionHash,
+    error: transactionError,
   } = useIssuePass();
   const { toast } = useToast();
 
@@ -61,12 +84,51 @@ const Prove = () => {
   };
 
   const handleSubmit = async () => {
+    console.log("[ProofPass] Button clicked, checking conditions:", {
+      address: !!address,
+      country: !!country,
+      region: !!region,
+      isIssuing,
+      isConfirming: transactionState.isConfirming,
+      issuePass: !!issuePass
+    });
+
+    if (!address) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!country) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a country in Step 2",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Reset transaction state
+    setTransactionState({
+      hash: null,
+      passId: null,
+      isConfirming: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    });
+
     let feeBigInt: bigint = BigInt(0);
     if (typeof fee === "bigint") feeBigInt = fee;
     else if (typeof fee === "string" || typeof fee === "number") feeBigInt = BigInt(fee);
+    
     const docCID = "docCID-placeholder"; // TODO: Replace with actual docCID from upload
     const metaCID = "metaCID-placeholder"; // TODO: Replace with actual metaCID if available
     const expiry = BigInt(Math.floor(new Date().getTime() / 1000) + 31536000); // 1 year from now
+    
     console.log("[ProofPass] Submitting issuePass with args:", {
       to: address,
       country,
@@ -76,8 +138,9 @@ const Prove = () => {
       expiry,
       fee: feeBigInt
     });
+
     try {
-      const tx = await issuePass(
+      await issuePass(
         address as `0x${string}`,
         country,
         region,
@@ -86,46 +149,125 @@ const Prove = () => {
         expiry,
         feeBigInt
       );
-      console.log("[ProofPass] issuePass transaction result:", tx);
     } catch (err) {
       console.error("[ProofPass] issuePass error:", err);
+      
+      let errorMessage = "Transaction failed";
+      if (err instanceof Error) {
+        if (err.message.includes("User rejected")) {
+          errorMessage = "Transaction was rejected by user";
+        } else if (err.message.includes("insufficient funds")) {
+          errorMessage = "Insufficient funds for transaction";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setTransactionState(prev => ({
+        ...prev,
+        isError: true,
+        error: errorMessage,
+      }));
+      
       toast({
         title: "Transaction Failed",
-        description: err instanceof Error ? err.message : String(err),
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
+  // Handle transaction hash update
+  useEffect(() => {
+    if (transactionHash) {
+      console.log("[ProofPass] Transaction hash received:", transactionHash);
+      setTransactionState(prev => ({
+        ...prev,
+        hash: transactionHash,
+        isConfirming: true,
+      }));
+      
+      toast({
+        title: "Transaction Submitted",
+        description: "Waiting for confirmation...",
+      });
+    }
+  }, [transactionHash, toast]);
+
+  // Handle transaction success and extract Pass ID
   useEffect(() => {
     if (isSuccess && issueData) {
-      // The passId is in the logs of the transaction data.
-      // We need to parse the logs to find the PassIssued event.
-      // This is a simplified example.
-      // Find the PassIssued event log and extract passId
-      const passIssuedEventSig =
-        "0x" +
-        parseAbiItem(
-          "event PassIssued(uint256 passId, address to, address issuer, string country, string region, string docCID)"
-        ).name;
-      const event = issueData.logs.find(
-        (log: any) =>
-          log.topics &&
-          log.topics.length > 0 &&
-          log.topics[0] === passIssuedEventSig
-      );
-      if (event) {
-        // passId is the first topic after the event signature
-        const newPassId = BigInt(event.topics[1]).toString();
-        setPassId(newPassId);
-        setCurrentStep(3);
-        toast({
-          title: "Pass Issued Successfully!",
-          description: `Your Residency Pass #${newPassId} has been minted`,
-        });
+      console.log("[ProofPass] Transaction confirmed, parsing receipt:", issueData);
+      
+      try {
+        // Look for PassIssued event in the logs
+        let extractedPassId: string | null = null;
+        
+        for (const log of issueData.logs) {
+          try {
+            // Try to decode the log as a PassIssued event
+            // The PassIssued event should have the passId as the first parameter
+            if (log.topics && log.topics.length > 1) {
+              // Extract passId from the first indexed parameter (topics[1])
+              const passIdHex = log.topics[1];
+              extractedPassId = BigInt(passIdHex).toString();
+              console.log("[ProofPass] Extracted Pass ID from topics:", extractedPassId);
+              break;
+            }
+          } catch (decodeError) {
+            console.log("[ProofPass] Could not decode log:", decodeError);
+            continue;
+          }
+        }
+
+        if (extractedPassId) {
+          setTransactionState(prev => ({
+            ...prev,
+            passId: extractedPassId,
+            isConfirming: false,
+            isSuccess: true,
+          }));
+          
+          // Advance to Step 4 (Pass)
+          setCurrentStep(3);
+          
+          toast({
+            title: "Pass Issued Successfully!",
+            description: `Your Residency Pass #${extractedPassId} has been minted`,
+          });
+        } else {
+          console.error("[ProofPass] Could not extract Pass ID from transaction logs");
+          setTransactionState(prev => ({
+            ...prev,
+            isConfirming: false,
+            isError: true,
+            error: "Pass ID could not be extracted from transaction",
+          }));
+        }
+      } catch (error) {
+        console.error("[ProofPass] Error parsing transaction receipt:", error);
+        setTransactionState(prev => ({
+          ...prev,
+          isConfirming: false,
+          isError: true,
+          error: "Failed to parse transaction receipt",
+        }));
       }
     }
   }, [isSuccess, issueData, toast]);
+
+  // Handle transaction errors
+  useEffect(() => {
+    if (transactionError) {
+      console.error("[ProofPass] Transaction error:", transactionError);
+      setTransactionState(prev => ({
+        ...prev,
+        isConfirming: false,
+        isError: true,
+        error: transactionError.message || "Transaction failed",
+      }));
+    }
+  }, [transactionError]);
 
   const copyToClipboard = (text: string, description: string) => {
     navigator.clipboard.writeText(text);
@@ -267,53 +409,163 @@ const Prove = () => {
                           : "N/A"}
                       </p>
                     </div>
+
+                    {/* Transaction Status Display */}
+                    {transactionState.isConfirming && (
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                        <div className="flex items-center justify-center space-x-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                          <span className="text-blue-400">
+                            Transaction submitted. Waiting for confirmation...
+                          </span>
+                        </div>
+                        {transactionState.hash && (
+                          <div className="mt-2 text-center">
+                            <a
+                              href={`https://calibration.filfox.info/en/message/${transactionState.hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-400 hover:underline"
+                            >
+                              View transaction on explorer
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Error Display */}
+                    {transactionState.isError && (
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <AlertCircle className="h-4 w-4 text-red-400" />
+                          <span className="text-red-400">{transactionState.error}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Debug info - remove in production */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 text-xs">
+                        <div className="font-semibold mb-2">Debug Info:</div>
+                        <div>Address: {address ? '✓' : '✗'}</div>
+                        <div>Country: {country ? `✓ (${country})` : '✗'}</div>
+                        <div>Region: {region ? `✓ (${region})` : '✗ (optional)'}</div>
+                        <div>issuePass: {issuePass ? '✓' : '✗'}</div>
+                        <div>isIssuing: {isIssuing ? '✓' : '✗'}</div>
+                        <div>isConfirming: {transactionState.isConfirming ? '✓' : '✗'}</div>
+                      </div>
+                    )}
+
                     <Button
                       onClick={handleSubmit}
-                      disabled={isIssuing || !issuePass}
+                      disabled={
+                        isIssuing || 
+                        transactionState.isConfirming || 
+                        !issuePass || 
+                        !address ||
+                        !country
+                        // Removed !region since it's marked as optional in Step 2
+                      }
                       className="w-full bg-emerald-500 hover:bg-emerald-600"
                     >
-                      {isIssuing ? "Processing..." : "Confirm & Issue Pass"}
+                      {isIssuing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Confirming in Wallet...
+                        </>
+                      ) : transactionState.isConfirming ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Confirming Transaction...
+                        </>
+                      ) : (
+                        "Confirm & Issue Pass"
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {currentStep === 3 && passId && (
+            {currentStep === 3 && transactionState.isSuccess && transactionState.passId && (
               <motion.div key={3} variants={fadeIn} className="relative">
                 <SuccessAnimation active={true} />
                 <Card className="glass-card">
                   <CardContent className="p-8 text-center">
-                    <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, duration: 0.5 }}
+                      className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4"
+                    >
                       <CheckCircle className="h-10 w-10 text-white" />
-                    </div>
+                    </motion.div>
                     <h2 className="text-3xl font-bold text-emerald-600 mb-2">
                       Pass Issued Successfully!
                     </h2>
                     <div className="text-4xl font-bold gradient-text mb-4">
-                      #{passId}
+                      #{transactionState.passId}
                     </div>
-                    <div className="flex items-center justify-center space-x-4">
+                    <p className="text-muted-foreground mb-6">
+                      Your residency pass has been created and stored on the blockchain
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(passId, "Pass ID")}
+                        onClick={() => copyToClipboard(transactionState.passId!, "Pass ID")}
                       >
                         <Copy className="h-4 w-4 mr-2" />
-                        Copy ID
+                        Copy Pass ID
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(
+                          `${window.location.origin}/verify?passId=${transactionState.passId}`,
+                          "Verification Link"
+                        )}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Verification Link
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-center space-x-4">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() =>
                           window.open(
-                            `https://calibration.filfox.info/en/message/${issueData?.transactionHash}`,
+                            `https://calibration.filfox.info/en/message/${transactionState.hash}`,
                             "_blank"
                           )
                         }
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
                         View on Explorer
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setCurrentStep(0);
+                          setTransactionState({
+                            hash: null,
+                            passId: null,
+                            isConfirming: false,
+                            isSuccess: false,
+                            isError: false,
+                            error: null,
+                          });
+                          setFile(null);
+                          setFilePreview(null);
+                          setCountry("");
+                          setRegion("");
+                        }}
+                        size="sm"
+                      >
+                        Create Another Pass
                       </Button>
                     </div>
                   </CardContent>
