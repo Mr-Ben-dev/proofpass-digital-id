@@ -1,33 +1,32 @@
-import { useState, useEffect } from "react";
+import ProgressStepper from "@/components/animations/ProgressStepper";
+import SuccessAnimation from "@/components/animations/SuccessAnimation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
-import ProgressStepper from "@/components/animations/ProgressStepper";
-import SuccessAnimation from "@/components/animations/SuccessAnimation";
-import { motion, AnimatePresence } from "framer-motion";
-import { fadeIn } from "@/utils/motionPresets";
-import { useIssuePass, useFeeAmount } from "@/hooks/useResidencyPass";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount } from "wagmi";
-import { formatEther, parseAbiItem } from "viem";
+import { useFeeAmount, useIssuePass } from "@/hooks/useResidencyPass";
+import { fadeIn } from "@/utils/motionPresets";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Upload,
-  FileCheck,
-  CreditCard,
-  Shield,
-  CheckCircle,
-  ArrowRight,
-  Copy,
-  ExternalLink,
+    ArrowRight,
+    CheckCircle,
+    Copy,
+    CreditCard,
+    ExternalLink,
+    FileCheck,
+    Upload
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { formatEther, parseAbiItem } from "viem";
+import { useAccount } from "wagmi";
 
 const Prove = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -61,20 +60,41 @@ const Prove = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let feeBigInt: bigint = BigInt(0);
     if (typeof fee === "bigint") feeBigInt = fee;
-    else if (typeof fee === "string" || typeof fee === "number")
-      feeBigInt = BigInt(fee);
-    issuePass(
-      address as `0x${string}`,
+    else if (typeof fee === "string" || typeof fee === "number") feeBigInt = BigInt(fee);
+    const docCID = "docCID-placeholder"; // TODO: Replace with actual docCID from upload
+    const metaCID = "metaCID-placeholder"; // TODO: Replace with actual metaCID if available
+    const expiry = BigInt(Math.floor(new Date().getTime() / 1000) + 31536000); // 1 year from now
+    console.log("[ProofPass] Submitting issuePass with args:", {
+      to: address,
       country,
       region,
-      "docCID-placeholder",
-      "metaCID-placeholder",
-      BigInt(Math.floor(new Date().getTime() / 1000) + 31536000),
-      feeBigInt
-    );
+      docCID,
+      metaCID,
+      expiry,
+      fee: feeBigInt
+    });
+    try {
+      const tx = await issuePass(
+        address as `0x${string}`,
+        country,
+        region,
+        docCID,
+        metaCID,
+        expiry,
+        feeBigInt
+      );
+      console.log("[ProofPass] issuePass transaction result:", tx);
+    } catch (err) {
+      console.error("[ProofPass] issuePass error:", err);
+      toast({
+        title: "Transaction Failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {

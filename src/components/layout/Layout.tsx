@@ -1,51 +1,34 @@
-import { Outlet, useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import Header from "./Header";
+import { Suspense } from "react";
+import { Outlet } from "react-router-dom";
+import NetworkStatusIndicator from "../NetworkStatusIndicator";
 import Footer from "./Footer";
-import NetworkStatusIndicator from "../NetworkStatusIndicator"; // Import NetworkStatusIndicator
+import Header from "./Header";
 
-const pageVariants = {
-  initial: {
-    opacity: 0,
-    y: 20,
-  },
-  in: {
-    opacity: 1,
-    y: 0,
-  },
-  out: {
-    opacity: 0,
-    y: -20,
-  },
-};
-
-const pageTransition = {
-  type: "tween",
-  ease: "anticipate",
-  duration: 0.5,
-};
+// Simple loading component
+const LayoutLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh] w-full">
+    <div className="flex flex-col items-center space-y-3">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" />
+      <span className="text-sm font-medium text-emerald-400">Loading page...</span>
+    </div>
+  </div>
+);
 
 const Layout = () => {
-  const { pathname } = useLocation();
-
   return (
-    <>
-      <NetworkStatusIndicator /> {/* Add NetworkStatusIndicator here */}
+    <div className="min-h-screen flex flex-col bg-background">
+      <NetworkStatusIndicator />
       <Header />
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={pathname}
-          initial="initial"
-          animate="in"
-          exit="out"
-          variants={pageVariants}
-          transition={pageTransition}
-        >
+      
+      {/* Main content area - no animations, just clean transitions */}
+      <main className="flex-1 flex flex-col">
+        <Suspense fallback={<LayoutLoader />}>
           <Outlet />
-        </motion.main>
-      </AnimatePresence>
+        </Suspense>
+      </main>
+      
       <Footer />
-    </>
+    </div>
   );
 };
 

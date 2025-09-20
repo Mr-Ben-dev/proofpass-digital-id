@@ -36,16 +36,28 @@ export const fadeIn: Variants = {
   },
   animate: {
     opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    willChange: "opacity, transform, filter",
     transition: {
       duration: 0.5,
-      ease: defaultEasing,
+      ease: [0.4, 0, 0.2, 1],
+      staggerChildren: 0.05,
+      when: "beforeChildren",
     },
   },
   exit: {
     opacity: 0,
+    y: -32,
+    scale: 0.98,
+    filter: "blur(4px)",
+    willChange: "opacity, transform, filter",
     transition: {
-      duration: 0.5,
-      ease: defaultEasing,
+      duration: 0.4,
+      ease: [0.4, 0, 0.2, 1],
+      staggerDirection: -1,
+      staggerChildren: 0.05,
     },
   },
 };

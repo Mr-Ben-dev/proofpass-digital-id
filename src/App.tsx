@@ -1,37 +1,63 @@
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/layout/Layout";
 import React, { Suspense } from "react";
 import { HelmetProvider } from "react-helmet-async";
-import ErrorBoundary from "./components/ErrorBoundary"; // Import ErrorBoundary
-import { motion } from "framer-motion";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary";
+import Layout from "./components/layout/Layout";
 
-// Animated Loader for Suspense fallback
+// Enhanced Animated Loader for Suspense fallback
 const AnimatedLoader = () => (
-  <motion.div
-    className="flex items-center justify-center min-h-[40vh] w-full"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.4 }}
-  >
-    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400 mr-4" />
-    <span className="text-lg font-semibold text-emerald-400">Loading...</span>
-  </motion.div>
+  <div className="flex items-center justify-center min-h-[50vh] w-full bg-background">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400" />
+      <span className="text-lg font-semibold text-emerald-400">
+        Loading ProofPass...
+      </span>
+    </div>
+  </div>
 );
 
-// Lazy load page components
-const Landing = React.lazy(() => import("./pages/Landing"));
-const Prove = React.lazy(() => import("./pages/Prove"));
-const Verify = React.lazy(() => import("./pages/Verify"));
-const Contracts = React.lazy(() => import("./pages/Contracts"));
-const Docs = React.lazy(() => import("./pages/Docs"));
-const NotFound = React.lazy(() => import("./pages/NotFound"));
+// Simplified Route Wrapper
+const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ErrorBoundary>
+    <Suspense fallback={<AnimatedLoader />}>
+      {children}
+    </Suspense>
+  </ErrorBoundary>
+);
 
-const queryClient = new QueryClient();
+// Lazy load page components with error handling
+const Landing = React.lazy(() => 
+  import("./pages/Landing").catch(() => ({ default: () => <div className="p-8 text-center">Error loading Landing page</div> }))
+);
+const Prove = React.lazy(() => 
+  import("./pages/Prove").catch(() => ({ default: () => <div className="p-8 text-center">Error loading Prove page</div> }))
+);
+const Verify = React.lazy(() => 
+  import("./pages/Verify").catch(() => ({ default: () => <div className="p-8 text-center">Error loading Verify page</div> }))
+);
+const Contracts = React.lazy(() => 
+  import("./pages/Contracts").catch(() => ({ default: () => <div className="p-8 text-center">Error loading Contracts page</div> }))
+);
+const Docs = React.lazy(() => 
+  import("./pages/Docs").catch(() => ({ default: () => <div className="p-8 text-center">Error loading Docs page</div> }))
+);
+const NotFound = React.lazy(() => 
+  import("./pages/NotFound").catch(() => ({ default: () => <div className="p-8 text-center">Page not found</div> }))
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,66 +65,63 @@ const App = () => (
       <Toaster />
       <Sonner />
       <HelmetProvider>
-        <ErrorBoundary>
-          {" "}
-          {/* Wrap BrowserRouter with ErrorBoundary */}
-          <BrowserRouter>
-            <div className="dark min-h-screen flex flex-col bg-background text-foreground">
-              <Routes>
-                <Route element={<Layout />}>
-                  <Route
-                    path="/"
-                    element={
-                      <Suspense fallback={<AnimatedLoader />}>
-                        <Landing />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/prove"
-                    element={
-                      <Suspense fallback={<AnimatedLoader />}>
-                        <Prove />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/verify"
-                    element={
-                      <Suspense fallback={<AnimatedLoader />}>
-                        <Verify />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/contracts"
-                    element={
-                      <Suspense fallback={<AnimatedLoader />}>
-                        <Contracts />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/docs"
-                    element={
-                      <Suspense fallback={<AnimatedLoader />}>
-                        <Docs />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="*"
-                    element={
-                      <Suspense fallback={<AnimatedLoader />}>
-                        <NotFound />
-                      </Suspense>
-                    }
-                  />
-                </Route>
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </ErrorBoundary>
+        <BrowserRouter>
+          <div className="dark min-h-screen flex flex-col bg-background text-foreground">
+            <Routes>
+              <Route element={<Layout />}>
+                {/* Each route wrapped with Suspense and ErrorBoundary */}
+                <Route 
+                  path="/" 
+                  element={
+                    <RouteWrapper>
+                      <Landing />
+                    </RouteWrapper>
+                  } 
+                />
+                <Route 
+                  path="/prove" 
+                  element={
+                    <RouteWrapper>
+                      <Prove />
+                    </RouteWrapper>
+                  } 
+                />
+                <Route 
+                  path="/verify" 
+                  element={
+                    <RouteWrapper>
+                      <Verify />
+                    </RouteWrapper>
+                  } 
+                />
+                <Route 
+                  path="/contracts" 
+                  element={
+                    <RouteWrapper>
+                      <Contracts />
+                    </RouteWrapper>
+                  } 
+                />
+                <Route 
+                  path="/docs" 
+                  element={
+                    <RouteWrapper>
+                      <Docs />
+                    </RouteWrapper>
+                  } 
+                />
+                <Route 
+                  path="*" 
+                  element={
+                    <RouteWrapper>
+                      <NotFound />
+                    </RouteWrapper>
+                  } 
+                />
+              </Route>
+            </Routes>
+          </div>
+        </BrowserRouter>
       </HelmetProvider>
     </TooltipProvider>
   </QueryClientProvider>
