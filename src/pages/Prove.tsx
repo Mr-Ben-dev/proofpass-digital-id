@@ -1,3 +1,4 @@
+import ResidencyPassABI from "@/abi/ResidencyPass.json";
 import ProgressStepper from "@/components/animations/ProgressStepper";
 import SuccessAnimation from "@/components/animations/SuccessAnimation";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ import {
   Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { formatEther } from "viem";
+import { decodeEventLog, formatEther } from "viem";
 import { useAccount } from "wagmi";
 
 // Transaction state interface for better state management
@@ -205,17 +206,25 @@ const Prove = () => {
         
         for (const log of issueData.logs) {
           try {
-            // Try to decode the log as a PassIssued event
-            // The PassIssued event should have the passId as the first parameter
-            if (log.topics && log.topics.length > 1) {
-              // Extract passId from the first indexed parameter (topics[1])
-              const passIdHex = log.topics[1];
-              extractedPassId = BigInt(passIdHex).toString();
-              console.log("[ProofPass] Extracted Pass ID from topics:", extractedPassId);
+            // Use viem's decodeEventLog to properly parse the PassIssued event
+            const decodedLog = decodeEventLog({
+              abi: ResidencyPassABI,
+              data: log.data,
+              topics: log.topics,
+            });
+            
+            console.log("[ProofPass] Decoded log:", decodedLog);
+            
+            // Check if this is the PassIssued event
+            if (decodedLog.eventName === 'PassIssued') {
+              // Extract passId from the decoded event args
+              const passIdValue = decodedLog.args.passId;
+              extractedPassId = passIdValue.toString();
+              console.log("[ProofPass] Extracted Pass ID from PassIssued event:", extractedPassId);
               break;
             }
           } catch (decodeError) {
-            console.log("[ProofPass] Could not decode log:", decodeError);
+            console.log("[ProofPass] Could not decode log as PassIssued event:", decodeError);
             continue;
           }
         }
