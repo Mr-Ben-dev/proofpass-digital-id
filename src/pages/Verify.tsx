@@ -1,35 +1,33 @@
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import LoadingSkeleton from "@/components/animations/LoadingSkeleton";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { motion, AnimatePresence } from "framer-motion";
-import { fadeIn, staggerContainer, staggerItem } from "@/utils/motionPresets";
-import {
-  useVerifyResidency,
-  useGetPDPFreshness,
-  useTriggerPDPCheck,
-  usePdpFee,
-} from "@/hooks/useResidencyPass";
 import { useToast } from "@/hooks/use-toast";
-import LoadingSkeleton from "@/components/animations/LoadingSkeleton";
 import {
-  Shield,
-  CheckCircle,
-  Search,
-  ExternalLink,
-  Copy,
-  RefreshCw,
-  AlertCircle,
-  Clock,
-  FileText,
-  Share2,
-  WifiOff,
-} from "lucide-react";
+    useGetPDPFreshness,
+    usePdpFee,
+    useTriggerPDPCheck,
+    useVerifyResidency,
+} from "@/hooks/useResidencyPass";
+import { fadeIn, staggerContainer, staggerItem } from "@/utils/motionPresets";
 import { formatDistanceToNow } from "date-fns";
-import jsPDF from "jspdf";
+import { AnimatePresence, motion } from "framer-motion";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import {
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    FileText,
+    RefreshCw,
+    Search,
+    Share2,
+    Shield,
+    WifiOff
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const Verify = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,7 +37,19 @@ const Verify = () => {
 
   const passCardRef = useRef<HTMLDivElement>(null);
 
-  const passIdBigInt = passId ? BigInt(passId) : null;
+  // Safe BigInt conversion with validation
+  const passIdBigInt = (() => {
+    if (!passId || passId.trim() === "" || isNaN(Number(passId))) {
+      return null;
+    }
+    try {
+      const num = Number(passId);
+      if (num <= 0) return null;
+      return BigInt(passId);
+    } catch {
+      return null;
+    }
+  })();
 
   const {
     data: verificationResult,
@@ -68,19 +78,78 @@ const Verify = () => {
     };
   }, []);
 
+  // Component cleanup effect
   useEffect(() => {
-    if (searchParams.get("passId")) {
+    return () => {
+      // Reset states when component unmounts to prevent stale state
+      setIsVerifying(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    const urlPassId = searchParams.get("passId");
+    
+    // Only trigger verification if URL has a valid passId
+    if (urlPassId && urlPassId.trim() !== "" && !isNaN(Number(urlPassId))) {
+      setPassId(urlPassId);
       setIsVerifying(true);
+    } else if (urlPassId) {
+      // If URL has invalid passId, show error but don't trigger verification
+      toast({
+        title: "Invalid Pass ID",
+        description: "Please enter a valid Pass ID number",
+        variant: "destructive",
+      });
     }
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   const handleVerify = () => {
+    // Input validation before any contract call
+    if (!passId || passId.trim() === "") {
+      toast({
+        title: "Missing Pass ID",
+        description: "Please enter a Pass ID to verify",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isNaN(Number(passId))) {
+      toast({
+        title: "Invalid Pass ID",
+        description: "Please enter a valid Pass ID number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Additional validation for negative numbers or zero
+    const passIdNum = Number(passId);
+    if (passIdNum <= 0) {
+      toast({
+        title: "Invalid Pass ID",
+        description: "Pass ID must be a positive number",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSearchParams({ passId });
     setIsVerifying(true);
     refetchVerification();
   };
 
   const handleTriggerPDP = () => {
+    // Validate passId before triggering PDP
+    if (!passIdBigInt) {
+      toast({
+        title: "Invalid Pass ID",
+        description: "Please enter a valid Pass ID first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     let pdpFeeBigInt: bigint = BigInt(0);
     if (typeof pdpFee === "bigint") pdpFeeBigInt = pdpFee;
     else if (typeof pdpFee === "string" || typeof pdpFee === "number")
@@ -183,7 +252,7 @@ const Verify = () => {
               </div>
               <Button
                 onClick={handleVerify}
-                disabled={isLoading || !passId}
+                disabled={isLoading || !passId || !passIdBigInt}
                 className="px-8 h-12 bg-emerald-500 hover:bg-emerald-600 press-scale hover-glow"
               >
                 {isLoading ? (

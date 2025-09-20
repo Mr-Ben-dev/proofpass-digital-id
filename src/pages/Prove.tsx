@@ -1,7 +1,6 @@
 import ResidencyPassABI from "@/abi/ResidencyPass.json";
 import ProgressStepper from "@/components/animations/ProgressStepper";
 import SuccessAnimation from "@/components/animations/SuccessAnimation";
-import { DiagnosticPanel } from "@/components/DiagnosticPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -75,8 +74,8 @@ const Prove = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [country, setCountry] = useState("");
-  const [region, setRegion] = useState("");
+  const country = "US"; // Always US - hardcoded for SP compliance
+  const [region, setRegion] = useState("CA"); // Default to CA (supported region)
   
   // Enhanced transaction state management
   const [transactionState, setTransactionState] = useState<TransactionState>({
@@ -230,7 +229,6 @@ const Prove = () => {
     if (isSuccess && issueData) {
       console.log("=== PASS ID EXTRACTION DEBUG START ===");
       console.log("Environment:", {
-        isDev: import.meta.env.DEV,
         mode: import.meta.env.MODE,
         baseUrl: import.meta.env.BASE_URL,
         nodeEnv: import.meta.env.NODE_ENV,
@@ -508,7 +506,7 @@ const Prove = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <Label htmlFor="country">Country *</Label>
-                        <Select onValueChange={setCountry}>
+                        <Select onValueChange={setRegion}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select country" />
                           </SelectTrigger>
@@ -712,8 +710,8 @@ const Prove = () => {
                           });
                           setFile(null);
                           setFilePreview(null);
-                          setCountry("");
-                          setRegion("");
+                          setRegion("CA"); // Reset to default supported region
+
                         }}
                         size="sm"
                       >
@@ -728,10 +726,6 @@ const Prove = () => {
         </div>
       </div>
       
-      {/* Diagnostic Panel - Only show in development or when needed */}
-      {(import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) && (
-        <DiagnosticPanel />
-      )}
     </motion.div>
   );
 };
