@@ -1,25 +1,25 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import AnimatedCounter from "@/components/animations/AnimatedCounter";
 import Typewriter from "@/components/animations/Typewriter";
-import { motion } from "framer-motion";
-import { staggerContainer, staggerItem, fadeIn, scaleButton } from "@/utils/motionPresets";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useGetNotaryCount } from "@/hooks/useNotaryRegistry";
+import { fadeIn, scaleButton, staggerContainer, staggerItem } from "@/utils/motionPresets";
+import { motion } from "framer-motion";
 import {
-  Shield,
+  ArrowRight,
+  Award,
   CheckCircle,
-  Zap,
-  Lock,
+  Database,
   FileCheck,
   Globe,
-  ArrowRight,
-  Sparkles,
-  Database,
   Key,
-  Award,
-  TrendingUp
+  Lock,
+  Shield,
+  Sparkles,
+  TrendingUp,
+  Zap
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Landing = () => {
   const { data: notaryCount } = useGetNotaryCount();
