@@ -511,7 +511,7 @@ const Prove = () => {
                             <SelectValue placeholder="Select country" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="US">🇺🇸 United States</SelectItem>
+                            
                             <SelectItem value="CA">🇨🇦 Canada</SelectItem>
                           </SelectContent>
                         </Select>
