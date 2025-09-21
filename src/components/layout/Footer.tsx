@@ -51,7 +51,7 @@ const Footer = () => {
                 GitHub
               </Button>
               <div className="text-xs text-muted-foreground">
-                Built for Filecoin Hackathon 2024
+                Built for Filecoin Hackathon 2025
               </div>
             </div>
           </div>
@@ -123,7 +123,7 @@ const Footer = () => {
         <div className="border-t border-white/10 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-sm text-muted-foreground">
-              © 2024 ProofPass. Built with React, TypeScript, Filecoin, and OpenZeppelin.
+              © 2025 ProofPass. Built with React, TypeScript, Filecoin, and OpenZeppelin.
             </div>
             <div className="flex items-center space-x-6 text-xs text-muted-foreground">
               <span>Chain ID: 314159</span>

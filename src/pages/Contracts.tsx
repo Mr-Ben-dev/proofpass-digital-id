@@ -11,12 +11,12 @@ import { contracts } from "@/utils/constants";
 import { fadeIn, staggerContainer, staggerItem } from "@/utils/motionPresets";
 import { motion } from "framer-motion";
 import {
-    Activity,
-    Copy,
-    Database,
-    ExternalLink,
-    FileCheck,
-    Shield,
+  Activity,
+  Copy,
+  Database,
+  ExternalLink,
+  FileCheck,
+  Shield,
 } from "lucide-react";
 
 const Contracts = () => {
@@ -96,7 +96,7 @@ const Contracts = () => {
                   <p className="text-sm text-muted-foreground">
                     {contract.description}
                   </p>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between bg-black rounded-lg p-3">
                     <code className="text-xs font-mono">
                       {contract.address.slice(0, 10)}...
                       {contract.address.slice(-8)}

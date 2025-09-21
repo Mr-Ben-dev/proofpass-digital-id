@@ -240,7 +240,7 @@ const Docs = () => {
 
                 <div className="space-y-6">
                   {architectureComponents.map((component, index) => (
-                    <Card key={component.name} className="bg-gradient-to-r from-gray-50 to-emerald-50/20">
+                    <Card key={component.name} className="bg-dark">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-lg font-semibold">{component.name}</h3>
@@ -259,7 +259,7 @@ const Docs = () => {
                         <div className="space-y-3">
                           <div>
                             <div className="text-sm font-medium mb-1">Contract Address</div>
-                            <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
+                            <code className="text-xs bg-dark px-2 py-1 rounded font-mono">
                               {component.address}
                             </code>
                           </div>
@@ -293,7 +293,7 @@ const Docs = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-dark rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Network Configuration</h3>
                   <div className="space-y-2 text-sm font-mono">
                     <div><span className="text-muted-foreground">Network:</span> Filecoin Calibration</div>
@@ -306,7 +306,7 @@ const Docs = () => {
                 <div>
                   <h3 className="font-semibold mb-3">Core Functions</h3>
                   <div className="space-y-4">
-                    <Card className="bg-gradient-to-r from-emerald-50 to-cyan-50">
+                    <Card className="bg-bg-dark">
                       <CardContent className="p-4">
                         <div className="font-mono text-sm mb-2">
                           <span className="text-emerald-600">function</span> verifyResidency(uint256 passId)
@@ -320,7 +320,7 @@ const Docs = () => {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-r from-blue-50 to-purple-50">
+                    <Card className="bg-dark">
                       <CardContent className="p-4">
                         <div className="font-mono text-sm mb-2">
                           <span className="text-blue-600">function</span> issuePass(string jurisdiction, bytes signature)
@@ -334,7 +334,7 @@ const Docs = () => {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-r from-purple-50 to-pink-50">
+                    <Card className="bg-dark">
                       <CardContent className="p-4">
                         <div className="font-mono text-sm mb-2">
                           <span className="text-purple-600">function</span> triggerPDPCheck(uint256 passId)
@@ -350,12 +350,12 @@ const Docs = () => {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
+                <div className="bg-dark">
                   <h3 className="font-semibold mb-2 flex items-center">
                     <Lightbulb className="h-4 w-4 mr-2 text-yellow-600" />
                     Integration Example
                   </h3>
-                  <pre className="text-xs font-mono overflow-x-auto bg-white p-3 rounded border">
+                  <pre className="text-xs font-mono overflow-x-auto bg-dark p-3 rounded border">
 {`// Web3 Integration Example
 import { ethers } from 'ethers';
 
@@ -389,7 +389,7 @@ console.log('Valid:', result.isValid);`}
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="bg-gradient-to-r from-emerald-50 to-green-50">
+                  <Card className="bg-dark">
                     <CardContent className="p-4">
                       <h3 className="font-semibold mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
