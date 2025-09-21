@@ -1,22 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
-import { fadeIn, staggerContainer, staggerItem } from "@/utils/motionPresets";
-import { useTransactionHistory, Transaction } from "@/hooks/useTransactions";
-import { contracts } from "@/utils/constants";
 import NotaryRegistryAbi from "@/abi/NotaryRegistry.json";
-import SPJurisdictionAbi from "@/abi/SPJurisdiction.json";
 import ResidencyPassAbi from "@/abi/ResidencyPass.json";
-import {
-  ExternalLink,
-  Copy,
-  Shield,
-  Database,
-  FileCheck,
-  Activity,
-} from "lucide-react";
+import SPJurisdictionAbi from "@/abi/SPJurisdiction.json";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ENV } from "@/config/environment";
 import { useToast } from "@/hooks/use-toast";
+import { Transaction, useTransactionHistory } from "@/hooks/useTransactions";
+import { contracts } from "@/utils/constants";
+import { fadeIn, staggerContainer, staggerItem } from "@/utils/motionPresets";
+import { motion } from "framer-motion";
+import {
+    Activity,
+    Copy,
+    Database,
+    ExternalLink,
+    FileCheck,
+    Shield,
+} from "lucide-react";
 
 const Contracts = () => {
   const { toast } = useToast();
@@ -118,7 +119,7 @@ const Contracts = () => {
                         variant="ghost"
                         onClick={() =>
                           window.open(
-                            `https://calibration.filfox.info/en/address/${contract.address}`,
+                            `${ENV.EXPLORER_BASE}/address/${contract.address}`,
                             "_blank"
                           )
                         }

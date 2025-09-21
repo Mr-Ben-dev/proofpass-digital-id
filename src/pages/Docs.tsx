@@ -1,24 +1,25 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BookOpen, 
-  Zap, 
-  Code, 
-  Shield, 
-  PlayCircle,
-  ExternalLink,
-  CheckCircle,
-  Clock,
-  Users,
-  Lightbulb,
-  FileText,
-  Database,
-  Key,
-  Settings
+import { ENV } from "@/config/environment";
+import {
+    BookOpen,
+    CheckCircle,
+    Clock,
+    Code,
+    Database,
+    ExternalLink,
+    FileText,
+    Key,
+    Lightbulb,
+    PlayCircle,
+    Settings,
+    Shield,
+    Users,
+    Zap
 } from "lucide-react";
+import { useState } from "react";
 
 const Docs = () => {
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
@@ -51,19 +52,19 @@ const Docs = () => {
     {
       name: "NotaryRegistry",
       description: "Cryptographic signature validation and trusted notary management",
-      address: "0x17692e10Aa8FD4F1DC28cDaa49827111C4Ab6051",
+      address: ENV.CONTRACTS.NOTARY_REGISTRY,
       functions: ["addNotary", "removeNotary", "isNotary", "validateSignature"]
     },
     {
       name: "SPJurisdiction",
       description: "Storage Provider compliance verification and jurisdiction registry",
-      address: "0xBC8F28D0850Ea65A824c4677E4897a74e2246fC0",
+      address: ENV.CONTRACTS.SP_JURISDICTION,
       functions: ["registerJurisdiction", "updateJurisdiction", "isSPCompliant"]
     },
     {
       name: "ResidencyPass",
       description: "Soulbound NFT passes with integrated PDP verification system",
-      address: "0x2D4Ea76Ea27e5fC4E551d8657B79AD30FB48C57E",
+      address: ENV.CONTRACTS.RESIDENCY_PASS,
       functions: ["issuePass", "verifyResidency", "triggerPDPCheck", "revokePass"]
     }
   ];
@@ -246,7 +247,7 @@ const Docs = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(`https://calibration.filfox.info/en/address/${component.address}`, '_blank')}
+                            onClick={() => window.open(`${ENV.EXPLORER_BASE}/address/${component.address}`, '_blank')}
                           >
                             <ExternalLink className="h-4 w-4 mr-2" />
                             View Contract
@@ -296,9 +297,9 @@ const Docs = () => {
                   <h3 className="font-semibold mb-3">Network Configuration</h3>
                   <div className="space-y-2 text-sm font-mono">
                     <div><span className="text-muted-foreground">Network:</span> Filecoin Calibration</div>
-                    <div><span className="text-muted-foreground">Chain ID:</span> 314159</div>
-                    <div><span className="text-muted-foreground">RPC URL:</span> https://api.calibration.node.glif.io/rpc/v1</div>
-                    <div><span className="text-muted-foreground">Explorer:</span> https://calibration.filfox.info/en</div>
+                    <div><span className="text-muted-foreground">Chain ID:</span> {ENV.CHAIN_ID}</div>
+                    <div><span className="text-muted-foreground">RPC URL:</span> {ENV.RPC_URL}</div>
+                    <div><span className="text-muted-foreground">Explorer:</span> {ENV.EXPLORER_BASE}</div>
                   </div>
                 </div>
 
@@ -363,7 +364,7 @@ const provider = new ethers.JsonRpcProvider(
 );
 
 const contract = new ethers.Contract(
-  '0x2D4Ea76Ea27e5fC4E551d8657B79AD30FB48C57E',
+  '${ENV.CONTRACTS.RESIDENCY_PASS}',
   ResidencyPassABI,
   provider
 );

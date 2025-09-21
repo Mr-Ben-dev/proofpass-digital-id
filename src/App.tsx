@@ -1,8 +1,9 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { testContractParams, validateEnvironment } from "@/config/environment";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -59,14 +60,25 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <HelmetProvider>
-        <BrowserRouter>
-          <div className="dark min-h-screen flex flex-col bg-background text-foreground">
+const App = () => {
+  // Run environment validation on app startup
+  useEffect(() => {
+    try {
+      validateEnvironment();
+      testContractParams();
+    } catch (error) {
+      console.error("Environment validation failed:", error);
+    }
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <HelmetProvider>
+          <BrowserRouter>
+            <div className="dark min-h-screen flex flex-col bg-background text-foreground">
             <Routes>
               <Route element={<Layout />}>
                 {/* Each route wrapped with Suspense and ErrorBoundary */}
@@ -125,6 +137,7 @@ const App = () => (
       </HelmetProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

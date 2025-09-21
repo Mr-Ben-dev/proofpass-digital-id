@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Shield, Github, ExternalLink, Copy } from "lucide-react";
+import { ENV } from "@/config/environment";
 import { useToast } from "@/hooks/use-toast";
 import { contracts } from "@/utils/constants";
+import { Copy, ExternalLink, Github, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const { toast } = useToast();
@@ -75,7 +76,7 @@ const Footer = () => {
                       <Copy className="h-3 w-3" />
                     </Button>
                     <a
-                      href={`https://calibration.filfox.info/en/address/${contract.address}`}
+                      href={`${ENV.EXPLORER_BASE}/address/${contract.address}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
@@ -104,7 +105,7 @@ const Footer = () => {
                 RPC Endpoint
               </a>
               <a 
-                href="https://calibration.filfox.info/en" 
+                href={ENV.EXPLORER_BASE} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="block text-muted-foreground hover:text-emerald-400 transition-colors"

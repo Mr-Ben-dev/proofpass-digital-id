@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ENV } from "@/config/environment";
 import { useToast } from "@/hooks/use-toast";
 import {
     useGetPDPFreshness,
@@ -34,19 +35,33 @@ const Verify = () => {
   const [passId, setPassId] = useState(searchParams.get("passId") || "");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { toast } = useToast();
 
   const passCardRef = useRef<HTMLDivElement>(null);
 
-  // Safe BigInt conversion with validation
+  // Safe BigInt conversion with enhanced validation
   const passIdBigInt = (() => {
     if (!passId || passId.trim() === "" || isNaN(Number(passId))) {
       return null;
     }
     try {
       const num = Number(passId);
-      if (num <= 0) return null;
+      // Validate number is positive integer
+      if (num <= 0 || !Number.isInteger(num)) return null;
+      
+      // Check for JavaScript number safety
+      if (num > Number.MAX_SAFE_INTEGER) {
+        toast({
+          title: "Pass ID Too Large",
+          description: "Please enter a smaller Pass ID number",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
       return BigInt(passId);
-    } catch {
+    } catch (error) {
+      console.error("BigInt conversion error:", error);
       return null;
     }
   })();
@@ -58,14 +73,24 @@ const Verify = () => {
     error,
     refetch: refetchVerification,
   } = useVerifyResidency(isVerifying ? passIdBigInt : null);
+  
+  // Debug: Log contract call parameters
+  useEffect(() => {
+    if (isVerifying && passIdBigInt) {
+      console.log("=== VERIFY CONTRACT CALL DEBUG ===");
+      console.log("Pass ID (string):", passId);
+      console.log("Pass ID (BigInt):", passIdBigInt.toString());
+      console.log("Contract function: verifyResidency");
+      console.log("Args: [" + passIdBigInt.toString() + "]");
+    }
+  }, [isVerifying, passIdBigInt, passId]);
+  
   const { data: pdpFreshness, refetch: refetchFreshness } = useGetPDPFreshness(
     verificationResult?.[0] ? passIdBigInt : null
   );
   const { data: pdpFee } = usePdpFee();
   const { writeContract: triggerPDP, isLoading: isTriggeringPDP } =
     useTriggerPDPCheck();
-
-  const { toast } = useToast();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -137,6 +162,22 @@ const Verify = () => {
     setSearchParams({ passId });
     setIsVerifying(true);
     refetchVerification();
+  };
+
+  const handleClear = () => {
+    setPassId("");
+    setIsVerifying(false);
+    setSearchParams({});
+  };
+
+  const handlePassIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setPassId(newValue);
+    
+    // Reset verification state when user starts typing new value
+    if (newValue !== passId && isVerifying) {
+      setIsVerifying(false);
+    }
   };
 
   const handleTriggerPDP = () => {
@@ -246,10 +287,25 @@ const Verify = () => {
                 <Input
                   placeholder="Enter Pass ID (e.g., 1)"
                   value={passId}
-                  onChange={(e) => setPassId(e.target.value)}
+                  onChange={handlePassIdChange}
                   className="text-lg h-12"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && passId && passIdBigInt) {
+                      handleVerify();
+                    }
+                  }}
                 />
               </div>
+              {passId && (
+                <Button
+                  onClick={handleClear}
+                  variant="outline"
+                  className="h-12 px-4"
+                  title="Clear Pass ID"
+                >
+                  Clear
+                </Button>
+              )}
               <Button
                 onClick={handleVerify}
                 disabled={isLoading || !passId || !passIdBigInt}
@@ -282,7 +338,19 @@ const Verify = () => {
                     <AlertCircle className="h-6 w-6" />
                     <div>
                       <div className="font-semibold">Verification Failed</div>
-                      <div className="text-sm">{error?.message}</div>
+                      <div className="text-sm">
+                        {error?.message?.includes("ABI") 
+                          ? "Invalid Pass ID format. Please enter a valid number." 
+                          : error?.message || "An error occurred during verification"}
+                      </div>
+                      <Button
+                        onClick={handleClear}
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                      >
+                        Try Again
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -311,7 +379,7 @@ const Verify = () => {
                     </CardTitle>
                     <div className="flex items-center space-x-2">
                       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                        {passData.country} &rarr; {passData.region}
+                        {ENV.JURISDICTION.COUNTRY} &rarr; {passData.region}
                       </Badge>
                       <Badge
                         className={

@@ -56,15 +56,27 @@ export const useIssuePass = () => {
       metaCID: string,
       expiry: bigint,
       fee: bigint | undefined
-    ) =>
-      writeContract({
+    ) => {
+      // Debug: Log hook parameters
+      console.log("=== useResidencyPass HOOK DEBUG ===");
+      console.log("Hook called with parameters:");
+      console.log("  to:", to);
+      console.log("  country:", country);
+      console.log("  region:", region);
+      console.log("  docCID:", docCID);
+      console.log("  metaCID:", metaCID);
+      console.log("  expiry:", expiry);
+      console.log("  fee:", fee);
+      
+      return writeContract({
         ...residencyPassContract,
         functionName: "issuePass",
         args: [to, country, region, docCID, metaCID, expiry],
         value: fee,
         chain: filecoinCalibration,
         account,
-      }),
+      });
+    },
     hash, // Export the transaction hash
     data: receipt,
     isLoading: isPending || isConfirming,

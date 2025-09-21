@@ -1,12 +1,20 @@
+import { Button } from "@/components/ui/button";
+import { ENV } from "@/config/environment";
+import { useChainValidation } from "@/hooks/useChainValidation";
+import { useWallet } from "@/hooks/useWallet";
+import {
+    Globe,
+    Menu,
+    Shield,
+    Wallet,
+    X
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Shield, Menu, X, Wallet, Globe } from "lucide-react";
-import { useWallet } from "@/hooks/useWallet";
-import { Navigation, MobileNavigation } from "./Navigation";
-import { useBalance } from "wagmi";
-import { formatEther } from "viem";
 import { toast } from "sonner";
+import { formatEther } from "viem";
+import { useBalance } from "wagmi";
+import { MobileNavigation, Navigation } from "./Navigation";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,6 +28,7 @@ const Header = () => {
     isPending,
   } = useWallet();
   const { data: balance } = useBalance({ address });
+  const { isCorrectChain, currentChainId } = useChainValidation();
 
   // Show MetaMask rejection error toast
   if (
@@ -49,12 +58,20 @@ const Header = () => {
           {/* Right Section */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Network Status */}
-            <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <Globe className="h-4 w-4 text-emerald-400" />
-              <span className="text-xs font-medium text-emerald-400">
-                Calibration (314159)
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${
+              isCorrectChain 
+                ? 'bg-emerald-500/10 border-emerald-500/20' 
+                : 'bg-red-500/10 border-red-500/20'
+            }`}>
+              <Globe className={`h-4 w-4 ${isCorrectChain ? 'text-emerald-400' : 'text-red-400'}`} />
+              <span className={`text-xs font-medium ${isCorrectChain ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isCorrectChain ? `Calibration (${ENV.CHAIN_ID})` : `Wrong Network`}
               </span>
-              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className={`h-2 w-2 rounded-full ${
+                isCorrectChain 
+                  ? 'bg-emerald-400 animate-pulse' 
+                  : 'bg-red-400 animate-pulse'
+              }`} />
             </div>
 
             {/* Wallet Connection */}
@@ -114,7 +131,23 @@ const Header = () => {
         {isMenuOpen && (
           <div>
             <MobileNavigation onLinkClick={() => setIsMenuOpen(false)} />
-            <div className="pt-4 border-t border-white/[0.08]">
+            <div className="pt-4 border-t border-white/[0.08] space-y-3">
+              {/* Mobile Network Status */}
+              <div className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border ${
+                isCorrectChain 
+                  ? 'bg-emerald-500/10 border-emerald-500/20' 
+                  : 'bg-red-500/10 border-red-500/20'
+              }`}>
+                <Globe className={`h-4 w-4 ${isCorrectChain ? 'text-emerald-400' : 'text-red-400'}`} />
+                <span className={`text-sm font-medium ${isCorrectChain ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {isCorrectChain ? `Calibration Network` : `Wrong Network`}
+                </span>
+                <div className={`h-2 w-2 rounded-full ${
+                  isCorrectChain 
+                    ? 'bg-emerald-400 animate-pulse' 
+                    : 'bg-red-400 animate-pulse'
+                }`} />
+              </div>
               {isConnected ? (
                 <Button
                   onClick={() => disconnect()}
