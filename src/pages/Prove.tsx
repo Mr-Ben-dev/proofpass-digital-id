@@ -512,7 +512,7 @@ const Prove = () => {
                           </SelectTrigger>
                           <SelectContent>
                             
-                            <SelectItem value="CA">🇨🇦 Canada</SelectItem>
+                            <SelectItem value="CA">US</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

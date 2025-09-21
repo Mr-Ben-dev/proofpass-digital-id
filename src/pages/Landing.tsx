@@ -128,7 +128,7 @@ const Landing = () => {
             </motion.div>
 
             {/* Hero Headline */}
-            <motion.div variants={staggerItem} className="text-5xl md:text-7xl font-bold mb-6 h-24 md:h-48 flex items-center justify-center">
+            <motion.div variants={staggerItem} className="text-4xl md:text-5xl font-bold mb-6 h-24 md:h-48 flex items-center justify-center">
                 <Typewriter text="Verifiable Data Residency, Instantly" className="gradient-text" />
             </motion.div>
 
@@ -145,7 +145,7 @@ const Landing = () => {
                 <motion.div variants={scaleButton} whileHover="hover" whileTap="tap">
                   <Button size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-8 py-4 text-lg">
                     <Shield className="mr-2 h-5 w-5" />
-                    Verify Pass ID 1
+                    Verify Pass ID 1 to 20
                   </Button>
                 </motion.div>
               </Link>
